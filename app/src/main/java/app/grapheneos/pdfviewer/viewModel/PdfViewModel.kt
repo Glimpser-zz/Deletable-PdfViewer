@@ -63,6 +63,7 @@ class PdfViewModel(
 
     val documentName: StateFlow<String> =
         savedStateHandle.getStateFlow(STATE_DOCUMENT_NAME, "")
+    fun setDocumentName(value: String) { savedStateHandle[STATE_DOCUMENT_NAME] = value }
 
     private val _numPages = MutableStateFlow(0)
     val numPages: StateFlow<Int> = _numPages.asStateFlow()
