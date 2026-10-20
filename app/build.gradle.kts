@@ -41,15 +41,15 @@ android {
         }
     }
 
-    compileSdk = 37
-    buildToolsVersion = "37.0.0"
+    compileSdk = 36
+    buildToolsVersion = "36.0.0"
 
     namespace = "app.grapheneos.pdfviewer"
 
     defaultConfig {
         applicationId = "app.grapheneos.pdfviewer"
         minSdk = 26
-        targetSdk = 37
+        targetSdk = 36
         versionCode = 34
         versionName = versionCode.toString()
 

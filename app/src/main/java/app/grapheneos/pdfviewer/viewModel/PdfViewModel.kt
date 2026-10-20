@@ -3,6 +3,7 @@ package app.grapheneos.pdfviewer.viewModel
 import android.app.Application
 import android.content.ContentResolver
 import android.net.Uri
+import android.provider.DocumentsContract
 import androidx.annotation.StringRes
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.AndroidViewModel
@@ -280,6 +281,24 @@ class PdfViewModel(
                     else -> throw e
                 }
             }
+        }
+    }
+
+    fun deleteDocument(contentResolver: ContentResolver, uri: Uri, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val deleted = withContext(Dispatchers.IO) {
+                try {
+                    if (DocumentsContract.isDocumentUri(getApplication(), uri)) {
+                        DocumentsContract.deleteDocument(contentResolver, uri)
+                    } else {
+                        contentResolver.delete(uri, null, null) > 0
+                    }
+                } catch (_: Exception) {
+                    false
+                }
+            }
+            if (!deleted) postSnackbar(R.string.error_while_deleting)
+            onResult(deleted)
         }
     }
 

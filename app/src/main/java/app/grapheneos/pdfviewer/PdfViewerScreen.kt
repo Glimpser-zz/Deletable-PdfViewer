@@ -45,6 +45,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -254,6 +255,7 @@ fun PdfViewerScreen(
     var showDocProperties by rememberSaveable { mutableStateOf(false) }
     var showCustomZoom by rememberSaveable { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
+    var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
     var webViewRelease by remember { mutableIntStateOf(getWebViewRelease()) }
     val webViewOk = webViewRelease >= MIN_WEBVIEW_RELEASE
     var toolbarHeightPx by remember { mutableFloatStateOf(0f) }
@@ -437,6 +439,29 @@ fun PdfViewerScreen(
     val displayName = documentName.ifEmpty { stringResource(R.string.app_name) }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text(stringResource(R.string.action_delete_file)) },
+                text = { Text(stringResource(R.string.delete_file_confirmation, displayName)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showDeleteDialog = false
+                        val currentUri = uri
+                        if (currentUri != null) {
+                            viewModel.deleteDocument(context.contentResolver, currentUri) { deleted ->
+                                if (deleted) activity.finish()
+                            }
+                        }
+                    }) { Text(stringResource(R.string.action_delete_file)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            )
+        }
         when {
             webViewCrashed -> WebViewAlertScreen(
                 title = stringResource(R.string.webview_crash_title),
@@ -547,6 +572,7 @@ fun PdfViewerScreen(
                     }
                     saveAsLauncher.launch(intent)
                 },
+                onDeleteFile = { showDeleteDialog = true },
                 onDocumentProperties = { showDocProperties = true },
                 onToggleTextLayer = {
                     webView?.evaluateJavascript("toggleTextLayerVisibility()", null)
@@ -832,6 +858,7 @@ private fun PdfTopAppBar(
     onOutline: () -> Unit,
     onShare: () -> Unit,
     onSaveAs: () -> Unit,
+    onDeleteFile: () -> Unit,
     onDocumentProperties: () -> Unit,
     onToggleTextLayer: () -> Unit,
     onCrashWebView: () -> Unit,
@@ -974,6 +1001,12 @@ private fun PdfTopAppBar(
                                     contentDescription = null
                                 )
                             }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.action_delete_file)) },
+                            onClick = { onMenuToggle(false); onDeleteFile() },
+                            enabled = enabled,
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
                         )
                     }
                     DropdownMenuItem(
