@@ -450,7 +450,14 @@ fun PdfViewerScreen(
                         val currentUri = uri
                         if (currentUri != null) {
                             viewModel.deleteDocument(context.contentResolver, currentUri) { deleted ->
-                                if (deleted) activity.finish()
+                                if (deleted) {
+                                    viewModel.setUri(null)
+                                    viewModel.setDocumentName("")
+                                    viewModel.resetDocumentState()
+                                    viewModel.setDocumentLoaded(false)
+                                    viewModel.setToolbarVisible(true)
+                                    webView?.loadUrl("about:blank")
+                                }
                             }
                         }
                     }) { Text(stringResource(R.string.action_delete_file)) }
