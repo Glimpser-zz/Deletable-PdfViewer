@@ -43,27 +43,42 @@ jobs:
       - name: Build optimized release APK
         run: ./gradlew --no-daemon assembleRelease
 
-      - name: Sign release APK for installation
+      - name: Sign release APK
         env:
           BUILD_TOOLS: 36.0.0
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           set -euo pipefail
           UNSIGNED="app/build/outputs/apk/release/app-release-unsigned.apk"
           ALIGNED="$RUNNER_TEMP/app-release-aligned.apk"
           SIGNED="app/build/outputs/apk/release/app-release.apk"
-          KEYSTORE="$RUNNER_TEMP/pdfviewer-ci.keystore"
+          KEYSTORE="$RUNNER_TEMP/pdfviewer-signing.keystore"
 
-          keytool -genkeypair -v \
-            -keystore "$KEYSTORE" \
-            -storepass android -keypass android \
-            -alias pdfviewer-ci \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -dname "CN=PDF Viewer CI Build"
+          if [[ -n "${SIGNING_KEYSTORE_BASE64:-}" ]]; then
+            echo "$SIGNING_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
+            KEY_ALIAS="$SIGNING_KEY_ALIAS"
+            STORE_PASSWORD="$SIGNING_STORE_PASSWORD"
+            KEY_PASSWORD="$SIGNING_KEY_PASSWORD"
+          else
+            echo "No personal signing secrets configured; using temporary CI key."
+            keytool -genkeypair -v \
+              -keystore "$KEYSTORE" \
+              -storepass android -keypass android \
+              -alias pdfviewer-ci \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=PDF Viewer Temporary CI Build"
+            KEY_ALIAS="pdfviewer-ci"
+            STORE_PASSWORD="android"
+            KEY_PASSWORD="android"
+          fi
 
           "$ANDROID_HOME/build-tools/$BUILD_TOOLS/zipalign" -f -p 4 "$UNSIGNED" "$ALIGNED"
           "$ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner" sign \
-            --ks "$KEYSTORE" --ks-key-alias pdfviewer-ci \
-            --ks-pass pass:android --key-pass pass:android \
+            --ks "$KEYSTORE" --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass "pass:$STORE_PASSWORD" --key-pass "pass:$KEY_PASSWORD" \
             --out "$SIGNED" "$ALIGNED"
           "$ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner" verify --verbose "$SIGNED"
           ls -lh "$SIGNED"
