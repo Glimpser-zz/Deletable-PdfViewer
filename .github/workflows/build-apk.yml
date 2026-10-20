@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   build:
-    name: Build debug APK
+    name: Build release APK
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -40,12 +40,37 @@ jobs:
       - name: Install Android SDK packages
         run: sdkmanager --channel=3 "platforms;android-37.0" "build-tools;36.0.0"
 
-      - name: Build debug APK
-        run: ./gradlew --no-daemon assembleDebug
+      - name: Build optimized release APK
+        run: ./gradlew --no-daemon assembleRelease
 
-      - name: Upload APK
+      - name: Sign release APK for installation
+        env:
+          BUILD_TOOLS: 36.0.0
+        run: |
+          set -euo pipefail
+          UNSIGNED="app/build/outputs/apk/release/app-release-unsigned.apk"
+          ALIGNED="$RUNNER_TEMP/app-release-aligned.apk"
+          SIGNED="app/build/outputs/apk/release/app-release.apk"
+          KEYSTORE="$RUNNER_TEMP/pdfviewer-ci.keystore"
+
+          keytool -genkeypair -v \
+            -keystore "$KEYSTORE" \
+            -storepass android -keypass android \
+            -alias pdfviewer-ci \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=PDF Viewer CI Build"
+
+          "$ANDROID_HOME/build-tools/$BUILD_TOOLS/zipalign" -f -p 4 "$UNSIGNED" "$ALIGNED"
+          "$ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner" sign \
+            --ks "$KEYSTORE" --ks-key-alias pdfviewer-ci \
+            --ks-pass pass:android --key-pass pass:android \
+            --out "$SIGNED" "$ALIGNED"
+          "$ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner" verify --verbose "$SIGNED"
+          ls -lh "$SIGNED"
+
+      - name: Upload optimized release APK
         uses: actions/upload-artifact@v4
         with:
-          name: pdfviewer-delete-feature-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: pdfviewer-delete-feature-release-apk
+          path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
