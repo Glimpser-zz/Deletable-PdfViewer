@@ -12,6 +12,8 @@
     <string name="action_rotate_counterclockwise">Rotate counterclockwise</string>
     <string name="action_share">Share</string>
     <string name="action_save_as">Save as</string>
+    <string name="action_delete_file">Delete file</string>
+    <string name="delete_file_confirmation">Delete “%1$s”? This action cannot be undone.</string>
     <string name="action_outline">Outline</string>
     <string name="action_view_document_properties">Properties</string>
     <string name="action_close">Close</string>
@@ -29,6 +31,7 @@
     <string name="legacy_file_uri">Cannot open legacy file paths from insecure apps</string>
     <string name="error_while_opening">Error encountered while opening file</string>
     <string name="error_while_saving">Error encountered while saving file</string>
+    <string name="error_while_deleting">Could not delete this file. The file provider may not allow deletion.</string>
 
     <string name="webview_out_of_date_title">WebView out-of-date</string>
     <string name="webview_out_of_date_message" tools:ignore="PluralsCandidate">Your current WebView version is %1$d. The WebView should be at least version %2$d for the PDF Viewer to work.</string>
